@@ -1,3 +1,4 @@
+secret-kube
 keys
 .env*
 venv

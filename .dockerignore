@@ -1,3 +1,4 @@
+secret-kube
 .env*
 keys
 Dockerfile
