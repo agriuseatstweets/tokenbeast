@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agrius-tokenbeast
+  labels:
+    app: agrius-tokenbeast
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agrius-tokenbeast
+  template:
+    metadata:
+      labels:
+        app: agrius-tokenbeast
+    spec:
+      containers:
+      - name: agrius-tokenbeast
+        image: agriuseatstweets/tokenbeast:0.0.2
+        resources:
+          requests:
+            cpu: "25m"
+            memory: "50Mi"
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - secretRef:
+            name: agrius-tokenbeast-envs
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/usr/src/app/keys/key.json"
+        - name: BEAST_CALLBACK_URL
+          value: "https://agrius-tokenbeast.nandan.cloud/cb"
+        - name: TOKEN_LOCATION
+          value: "gs://trollhunters-beaststore"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "trollhunters"
+        volumeMounts:
+          - name: keys
+            mountPath: /usr/src/app/keys
+            readOnly: true
+      volumes:
+        - name: keys
+          secret:
+            secretName: agrius-tokenbeast-keys
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  name: agrius-tokenbeast
+spec:
+  tls:
+  - hosts:
+    - agrius-tokenbeast.nandan.cloud
+    secretName: agrius-tokenbeast-cert
+  rules:
+    - host: agrius-tokenbeast.nandan.cloud
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: agrius-tokenbeast
+            servicePort: 80
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: agrius-tokenbeast
+spec:
+  selector:
+    app: agrius-tokenbeast
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
