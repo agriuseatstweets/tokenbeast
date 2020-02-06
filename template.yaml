@@ -3,6 +3,9 @@ kind: CronJob
 metadata:
   name: agrius-rehydrate-{{idx}}
 spec:
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 2
+  concurrencyPolicy: Replace
   schedule: "*/15 * * * *"
   jobTemplate:
     spec:
@@ -14,22 +17,27 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: agrius-rehydrate
-            image: agriuseatstweets/rehydrate:0.0.6
+            image: agriuseatstweets/rehydrate:0.0.14
+            terminationMessagePolicy: FallbackToLogsOnError
             resources:
               requests:
-                memory: "128Mi"
+                memory: "256Mi"
             envFrom:
             - secretRef:
                 name: agrius-rehydrate-envs
             env:
               - name: KAFKA_BROKERS
-                value: "kafka:9092"
+                value: "hydra-kafka:9092"
+              - name: KAFKA_POLL_INTERVAL
+                value: "360000"
               - name: REHYDRATE_TOPIC
                 value: "ubdata"
               - name: PUB_TOPIC
                 value: "tweets"
               - name: REHYDRATE_SIZE
                 value: "90000"
+              - name: BATCH_SIZE
+                value: "2000"
               - name: T_ACCESS_TOKEN
                 value: "{{token}}"
               - name: T_TOKEN_SECRET
